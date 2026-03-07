@@ -2,7 +2,9 @@ const authService = require("@/services/auth.service");
 
 const register = async (req, res) => {
 	const { email, password } = req.body;
-	const result = await authService.handleRegister(email, password);
+	const userAgent = req.headers["user-agent"];
+
+	const result = await authService.handleRegister(email, password, userAgent);
 	res.success(result);
 };
 
@@ -18,4 +20,6 @@ const login = async (req, res) => {
 	res.success(data);
 };
 
-module.exports = { register, login };
+const refreshToken = () => {};
+
+module.exports = { register, login, refreshToken };

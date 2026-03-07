@@ -3,19 +3,21 @@ const jwt = require("jsonwebtoken");
 
 const authModel = require("@/models/auth.model");
 const authConfig = require("@/config/auth");
+const randomString = require("@/utils/randomString");
 const saltRounds = 10;
 
 class AuthService {
-	async handleRegister(email, password) {
+	async handleRegister(email, password, userAgent) {
 		const hash = await bcrypt.hash(password, saltRounds);
 		const result = await authModel.register(email, hash);
 
 		const user = { id: result.insertId };
 
 		const accessToken = await this.generateAccessToken(user);
+		const refreshToken = await this.generateRefreshToken(user, userAgent);
 		const accessTokenTtl = Math.floor(Date.now() / 1000 + authConfig.accessTokenTTL);
 
-		return { accessToken, accessTokenTtl };
+		return { accessToken, refreshToken, accessTokenTtl };
 	}
 
 	async handleLogin(email, password) {
@@ -30,9 +32,10 @@ class AuthService {
 		}
 
 		const accessToken = await this.generateAccessToken(user);
+		const refreshToken = await this.generateRefreshToken();
 		const accessTokenTtl = Math.floor(Date.now() / 1000 + authConfig.accessTokenTTL);
 
-		return [null, { accessToken, accessTokenTtl }];
+		return [null, { accessToken, refreshToken, accessTokenTtl }];
 	}
 
 	async generateAccessToken(user) {
@@ -44,6 +47,23 @@ class AuthService {
 			},
 			authConfig.jwtSecret,
 		);
+
+		return token;
+	}
+
+	async generateRefreshToken(user, userAgent) {
+		let token, existed;
+
+		do {
+			token = randomString();
+			const isExists = await authModel.isTokenExists(token);
+			existed = isExists;
+		} while (existed);
+
+		const expiresAt = new Date();
+		expiresAt.setDate(expiresAt.getDate() + authConfig.refreshTokenTTL);
+
+		await authModel.refreshToken(token, user, userAgent, expiresAt);
 
 		return token;
 	}

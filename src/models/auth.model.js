@@ -12,6 +12,19 @@ class AuthModel {
 		const [rows] = await pool.query(query, [email]);
 		return rows[0];
 	}
+
+	async isTokenExists(token) {
+		const [rows] = await pool.query("select count(*) as count from refresh_token where token = ?", [token]);
+		return rows[0].count > 0;
+	}
+
+	async refreshToken(token, user, userAgent, expiresAt) {
+		const [rows] = await pool.query(
+			"insert into refresh_token (token, userId, userAgent, expires_at) values (?, ?, ?, ?)",
+			[token, user.id, userAgent, expiresAt],
+		);
+		return rows;
+	}
 }
 
 module.exports = new AuthModel();
