@@ -4,8 +4,13 @@ const register = async (req, res) => {
 	const { email, password } = req.body;
 	const userAgent = req.headers["user-agent"];
 
-	const result = await authService.handleRegister(email, password, userAgent);
-	res.success(result);
+	const [error, data] = await authService.handleRegister(email, password, userAgent);
+	if (error) {
+		res.error(error);
+		return;
+	}
+
+	res.success(data);
 };
 
 const login = async (req, res) => {
@@ -20,6 +25,14 @@ const login = async (req, res) => {
 	res.success(data);
 };
 
-const refreshToken = () => {};
+const refreshToken = async (req, res) => {
+	const [error, data] = await authService.handleRefreshToken(req.body.refresh_token, req.headers["user-agent"]);
+
+	if (error) {
+		return res.unauthorized();
+	}
+
+	res.success(data);
+};
 
 module.exports = { register, login, refreshToken };

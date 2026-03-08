@@ -12,12 +12,9 @@ class AuthService {
 		const result = await authModel.register(email, hash);
 
 		const user = { id: result.insertId };
+		const userTokens = await this.generateUserToken(user, userAgent);
 
-		const accessToken = await this.generateAccessToken(user);
-		const refreshToken = await this.generateRefreshToken(user, userAgent);
-		const accessTokenTtl = Math.floor(Date.now() / 1000 + authConfig.accessTokenTTL);
-
-		return { accessToken, refreshToken, accessTokenTtl };
+		return [null, userTokens];
 	}
 
 	async handleLogin(email, password) {
@@ -31,11 +28,8 @@ class AuthService {
 			return [true, null];
 		}
 
-		const accessToken = await this.generateAccessToken(user);
-		const refreshToken = await this.generateRefreshToken();
-		const accessTokenTtl = Math.floor(Date.now() / 1000 + authConfig.accessTokenTTL);
-
-		return [null, { accessToken, refreshToken, accessTokenTtl }];
+		const userTokens = await this.generateUserToken(user, userAgent);
+		return [null, userTokens];
 	}
 
 	async generateAccessToken(user) {
@@ -66,6 +60,33 @@ class AuthService {
 		await authModel.refreshToken(token, user, userAgent, expiresAt);
 
 		return token;
+	}
+
+	async handleRefreshToken(token, userAgent) {
+		const refreshToken = await authModel.handleRefreshToken(token);
+
+		if (!refreshToken) {
+			return [true, null];
+		}
+
+		const user = { id: refreshToken.userId };
+		const userTokens = await this.generateUserToken(user, userAgent);
+
+		await authModel.updatedRefreshToken(refreshToken);
+
+		return [null, userTokens];
+	}
+
+	async generateUserToken(user, userAgent) {
+		const accessToken = await this.generateAccessToken(user);
+		const refreshToken = await this.generateRefreshToken(user, userAgent);
+		const accessTokenTtl = Math.floor(Date.now() / 1000 + authConfig.accessTokenTTL);
+
+		return {
+			accessToken,
+			refreshToken,
+			accessTokenTtl,
+		};
 	}
 }
 

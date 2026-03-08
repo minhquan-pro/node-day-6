@@ -25,6 +25,19 @@ class AuthModel {
 		);
 		return rows;
 	}
+
+	async handleRefreshToken(token) {
+		const [rows] = await pool.query(
+			"select * from refresh_token where token = ? and isRevoked = 0 and expires_at > now()",
+			[token],
+		);
+		return rows[0];
+	}
+
+	async updatedRefreshToken(refreshToken) {
+		const [rows] = await pool.query("update refresh_token set isRevoked = 1 where id = ?", [refreshToken.id]);
+		return rows;
+	}
 }
 
 module.exports = new AuthModel();
