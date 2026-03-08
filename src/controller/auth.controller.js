@@ -5,8 +5,9 @@ const register = async (req, res) => {
 	const userAgent = req.headers["user-agent"];
 
 	const [error, data] = await authService.handleRegister(email, password, userAgent);
+
 	if (error) {
-		res.error(error);
+		res.unauthorized();
 		return;
 	}
 
@@ -15,14 +16,27 @@ const register = async (req, res) => {
 
 const login = async (req, res) => {
 	const { email, password } = req.body;
-	const [error, data] = await authService.handleLogin(email, password);
+	const userAgent = req.headers["user-agent"];
+	const [error, data] = await authService.handleLogin(email, password, userAgent);
 
 	if (error) {
-		res.error(error);
+		res.unauthorized();
 		return;
 	}
 
 	res.success(data);
+};
+
+const logout = async (req, res) => {
+	const accessToken = req.headers?.authorization?.replace("Bearer", "").trim();
+
+	if (!accessToken) {
+		return res.unauthorized();
+	}
+
+	await authService.blacklistToken(accessToken);
+
+	res.success({ message: "Logged out successfully" });
 };
 
 const refreshToken = async (req, res) => {
@@ -35,4 +49,4 @@ const refreshToken = async (req, res) => {
 	res.success(data);
 };
 
-module.exports = { register, login, refreshToken };
+module.exports = { register, login, refreshToken, logout };

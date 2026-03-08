@@ -13,6 +13,12 @@ class AuthModel {
 		return rows[0];
 	}
 
+	async findUserById(id) {
+		const query = "select * from users where id = ?";
+		const [rows] = await pool.query(query, [id]);
+		return rows[0];
+	}
+
 	async isTokenExists(token) {
 		const [rows] = await pool.query("select count(*) as count from refresh_token where token = ?", [token]);
 		return rows[0].count > 0;

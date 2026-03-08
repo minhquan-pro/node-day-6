@@ -4,6 +4,7 @@ const jwt = require("jsonwebtoken");
 const authModel = require("@/models/auth.model");
 const authConfig = require("@/config/auth");
 const randomString = require("@/utils/randomString");
+const revokedTokenModel = require("@/models/revokedToken.model");
 const saltRounds = 10;
 
 class AuthService {
@@ -17,8 +18,9 @@ class AuthService {
 		return [null, userTokens];
 	}
 
-	async handleLogin(email, password) {
+	async handleLogin(email, password, userAgent) {
 		const user = await authModel.findUserByEmail(email);
+
 		if (!user) {
 			return [true, null];
 		}
@@ -87,6 +89,24 @@ class AuthService {
 			refreshToken,
 			accessTokenTtl,
 		};
+	}
+
+	async getUserById(id) {
+		const user = await authModel.findUserById(id);
+		return user;
+	}
+
+	async blacklistToken(token) {
+		const decoded = jwt.decode(token);
+		const expiresAt = new Date(decoded.exp * 1000);
+
+		const result = await revokedTokenModel.addTokenToBlacklist(token, expiresAt);
+		return result;
+	}
+
+	async checkTokenBlacklisted(accessToken) {
+		const isTokenRevoked = await revokedTokenModel.isTokenRevoked(accessToken);
+		return isTokenRevoked;
 	}
 }
 

@@ -8,6 +8,11 @@ const authRequired = async (req, res, next) => {
 
 	if (!accessToken) return res.unauthorized();
 
+	const isTokenBlacklisted = await authService.checkTokenBlacklisted(accessToken);
+	if (isTokenBlacklisted) {
+		return res.success({ message: "Logged out successfully" });
+	}
+
 	const payload = jwt.verify(accessToken, authConfig.jwtSecret);
 
 	if (payload.exp < Date.now() / 1000) return res.unauthorized();
